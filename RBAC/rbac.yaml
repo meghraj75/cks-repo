@@ -1,0 +1,45 @@
+k create ns red
+k create ns blue
+
+k -n red create role secret-manager --verb=get --resource=secrets
+k -n red create rolebinding secret-manager --role=secret-manager --user=raj
+k -n blue create role secret-manager --verb=get --verb=list --resource=secrets
+k -n blue create rolebinding secret-manager --role=secret-manager --user=niket
+
+
+# check permissions
+k -n red auth can-i -h
+k -n red auth can-i create pods --as raj# no
+k -n red auth can-i get secrets --as raj # yes
+k -n red auth can-i list secrets --as raj # no
+
+k -n blue auth can-i list secrets --as niket # yes
+k -n blue auth can-i get secrets --as niket # yes
+
+k -n default auth can-i get secrets --as niket #no
+
+
+
+----------------------------------------------------------
+
+Cluster role and cluster role binding
+
+k create clusterrole deploy-deleter --verb=delete --resource=deployment
+
+k create clusterrolebinding deploy-deleter --clusterrole=deploy-deleter --user=raj
+
+k -n red create rolebinding deploy-deleter --clusterrole=deploy-deleter --user=niket
+
+# test raj
+k auth can-i delete deploy --as raj # yes
+k auth can-i delete deploy --as raj -n red # yes
+k auth can-i delete deploy --as raj -n blue # yes
+k auth can-i delete deploy --as raj -A # yes
+k auth can-i create deploy --as raj --all-namespaces # no
+
+# test niket
+k auth can-i delete deploy --as niket # no
+k auth can-i delete deploy --as niket -A # no
+k auth can-i delete deploy --as niket -n red # yes
+k auth can-i delete deploy --as niket -n blue # no
+
